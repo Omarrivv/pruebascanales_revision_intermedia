@@ -1,0 +1,3 @@
+pe\edu\vallegrande\msvstudents\application\service\impl\StudentServiceImplTest.class
+pe\edu\vallegrande\msvstudents\infrastructure\rest\StudentControllerTest.class
+pe\edu\vallegrande\msvstudents\infrastructure\util\StudentMapperTest.class
