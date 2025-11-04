@@ -19,8 +19,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo '� Clonando repositorio...'
-                git branch: 'develop-clean', url: "${GITHUB_REPO}"
+                echo '🔄 Clonando repositorio...'
+                git branch: 'main', url: "${GITHUB_REPO}"
                 
                 echo '🧹 Limpiando caché de Maven si es necesario...'
                 script {
@@ -38,7 +38,6 @@ pipeline {
                 retry(3) {
                     sh '''
                         mvn compile \
-                            -s maven-settings.xml \
                             -Dmaven.wagon.http.retryHandler.count=3 \
                             -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
                             -Dmaven.wagon.http.pool=false
@@ -54,7 +53,6 @@ pipeline {
                     try {
                         sh '''
                             mvn test jacoco:report \
-                                -s maven-settings.xml \
                                 -Dsurefire.failIfNoSpecifiedTests=false
                         '''
                         echo '✅ Pruebas unitarias completadas'
@@ -106,7 +104,6 @@ pipeline {
                         // EJECUCIÓN: No usar 'clean'
                         sh '''
                             mvn failsafe:integration-test \
-                                -s maven-settings.xml \
                                 -Dtest=*IntegrationTest,*PerformanceTest \
                                 -Dsurefire.failIfNoSpecifiedTests=false
                         '''
@@ -138,7 +135,6 @@ pipeline {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
                         mvn package sonar:sonar \
-                            -s maven-settings.xml \
                             -Dsonar.projectKey=Omarrivv_pruebascanales_revision_intermedia \
                             -Dsonar.organization=omarrivv \
                             -Dsonar.host.url=https://sonarcloud.io \
