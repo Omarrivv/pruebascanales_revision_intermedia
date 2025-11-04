@@ -23,9 +23,22 @@ pipeline {
             steps {
                 echo "🚀 Iniciando Pipeline - ${PROJECT_NAME}"
                 
-                // Limpiar workspace y clonar repositorio
-                sh 'rm -rf *'
-                sh 'git clone https://github.com/Omarrivv/pruebascanales_revision_intermedia.git .'
+                // Limpiar workspace y obtener código actualizado
+                script {
+                    // Verificar si ya existe un repositorio git
+                    def gitExists = sh(script: 'test -d .git', returnStatus: true) == 0
+                    
+                    if (gitExists) {
+                        echo "📁 Repositorio git encontrado, actualizando..."
+                        sh 'git fetch origin'
+                        sh 'git reset --hard origin/main'
+                        sh 'git clean -fd'
+                    } else {
+                        echo "📁 Clonando repositorio por primera vez..."
+                        sh 'rm -rf * .* || true'
+                        sh 'git clone https://github.com/Omarrivv/pruebascanales_revision_intermedia.git .'
+                    }
+                }
                 
                 // Verificar que tenemos los archivos
                 sh 'ls -la'
