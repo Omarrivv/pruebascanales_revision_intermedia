@@ -126,34 +126,19 @@ pipeline {
         success {
             script {
                 echo "🎉 Enviando notificación de ÉXITO a Slack..."
-                sh """
-                    curl -X POST -H "Content-type: application/json" \
-                    --data '{"text":"🎉 PIPELINE COMPLETADO EXITOSAMENTE\\n📋 Proyecto: ${PROJECT_NAME}\\n🔢 Build: #${BUILD_NUMBER}\\n⏱️ Duración: ${currentBuild.durationString}\\n🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\n📊 Console: ${BUILD_URL}console"}' \
-                    ${SLACK_WEBHOOK}
-                """
+                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🎉 PIPELINE COMPLETADO EXITOSAMENTE - ${PROJECT_NAME} Build #${BUILD_NUMBER} ✅ Duración: ${currentBuild.durationString} 🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
             }
         }
         
         failure {
             script {
                 echo "❌ Enviando notificación de ERROR a Slack..."
-                sh """
-                    curl -X POST -H "Content-type: application/json" \
-                    --data '{"text":"❌ PIPELINE FALLÓ\\n📋 Proyecto: ${PROJECT_NAME}\\n🔢 Build: #${BUILD_NUMBER}\\n🚨 Revisar logs urgente\\n📊 Console: ${BUILD_URL}console\\n🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}"}' \
-                    ${SLACK_WEBHOOK}
-                """
+                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"❌ PIPELINE FALLÓ - ${PROJECT_NAME} Build #${BUILD_NUMBER} ❌ Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
             }
         }
         
         always {
-            echo "🧹 Pipeline terminado - Limpiando workspace"
-            script {
-                sh """
-                    curl -X POST -H "Content-type: application/json" \
-                    --data '{"text":"ℹ️ Pipeline finalizado - ${PROJECT_NAME} Build #${BUILD_NUMBER}\\nEstado: ${currentBuild.currentResult}\\n📊 Ver detalles: ${BUILD_URL}"}' \
-                    ${SLACK_WEBHOOK} || echo "Notificación final falló"
-                """
-            }
+            echo "🧹 Pipeline terminado"
         }
     }
 }
