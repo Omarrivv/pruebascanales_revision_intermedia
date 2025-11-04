@@ -73,10 +73,20 @@ pipeline {
                         
                         echo '✅ Análisis SonarCloud completado'
                         
-                        // Notificar análisis completado
-                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🔍 SONAR ENVIADO - Esperando Quality Gate...\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                        // Notificar análisis enviado con enlace directo
+                        sh """
+                            curl -X POST -H "Content-type: application/json" \
+                            --data '{"text":"� ANÁLISIS SONARCLOUD ENVIADO\\n🔍 Proyecto: ${PROJECT_NAME}\\n🔗 Ver resultados: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\n⏳ Procesando Quality Gate..."}' \
+                            ${SLACK_WEBHOOK}
+                        """
+                        
+                        echo '⚠️  NOTA: Quality Gate se procesa asincrónicamente en SonarCloud'
                     } catch (Exception e) {
-                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"❌ ERROR EN SONAR - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                        sh """
+                            curl -X POST -H "Content-type: application/json" \
+                            --data '{"text":"❌ ERROR EN ANÁLISIS SONARCLOUD\\n📋 Proyecto: ${PROJECT_NAME}\\n🚨 Revisar token y configuración\\n📊 Console: ${BUILD_URL}console"}' \
+                            ${SLACK_WEBHOOK}
+                        """
                         throw e
                     }
                 }
@@ -102,18 +112,35 @@ pipeline {
     post {
         success {
             script {
-                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🎉 PIPELINE COMPLETADO EXITOSAMENTE - ${PROJECT_NAME} Build #${BUILD_NUMBER} ✅ Duración: ${currentBuild.durationString} 🔗 SonarCloud: https://sonarcloud.io/dashboard?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                echo "🎉 Enviando notificación de ÉXITO a Slack..."
+                sh """
+                    curl -X POST -H "Content-type: application/json" \
+                    --data '{"text":"🎉 PIPELINE COMPLETADO EXITOSAMENTE\\n📋 Proyecto: ${PROJECT_NAME}\\n🔢 Build: #${BUILD_NUMBER}\\n⏱️ Duración: ${currentBuild.durationString}\\n🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\n📊 Console: ${BUILD_URL}console"}' \
+                    ${SLACK_WEBHOOK}
+                """
             }
         }
         
         failure {
             script {
-                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"� PIPELINE FALLÓ - ${PROJECT_NAME} Build #${BUILD_NUMBER} ❌ Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                echo "❌ Enviando notificación de ERROR a Slack..."
+                sh """
+                    curl -X POST -H "Content-type: application/json" \
+                    --data '{"text":"❌ PIPELINE FALLÓ\\n📋 Proyecto: ${PROJECT_NAME}\\n🔢 Build: #${BUILD_NUMBER}\\n🚨 Revisar logs urgente\\n📊 Console: ${BUILD_URL}console\\n🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}"}' \
+                    ${SLACK_WEBHOOK}
+                """
             }
         }
         
         always {
-            echo "🧹 Pipeline terminado"
+            echo "🧹 Pipeline terminado - Limpiando workspace"
+            script {
+                sh """
+                    curl -X POST -H "Content-type: application/json" \
+                    --data '{"text":"ℹ️ Pipeline finalizado - ${PROJECT_NAME} Build #${BUILD_NUMBER}\\nEstado: ${currentBuild.currentResult}\\n📊 Ver detalles: ${BUILD_URL}"}' \
+                    ${SLACK_WEBHOOK} || echo "Notificación final falló"
+                """
+            }
         }
     }
 }
