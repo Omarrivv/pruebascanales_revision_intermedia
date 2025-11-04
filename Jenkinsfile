@@ -16,6 +16,7 @@ pipeline {
         SONAR_PROJECT_KEY = 'Omarrivv_pruebascanales_revision_intermedia'
         SLACK_WEBHOOK = 'https://hooks.slack.com/services/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'
         PROJECT_NAME = 'MS Students Microservice'
+        SLACK_CHANNEL = '#jenkins-ci-cd-bot'
     }
     
     stages {
@@ -44,7 +45,7 @@ pipeline {
                 sh 'ls -la'
                 
                 script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🚀 PIPELINE INICIADO - ${PROJECT_NAME} Build #${BUILD_NUMBER} - Código descargado ✅\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"🚀 PIPELINE INICIADO - ${PROJECT_NAME} Build #${BUILD_NUMBER} - Código descargado ✅\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                 }
             }
         }
@@ -58,7 +59,7 @@ pipeline {
                 }
                 
                 script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"✅ BUILD COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"✅ BUILD COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                 }
             }
         }
@@ -71,7 +72,7 @@ pipeline {
                 }
                 
                 script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🧪 TESTS COMPLETADOS - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"🧪 TESTS COMPLETADOS - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                 }
             }
         }
@@ -87,11 +88,11 @@ pipeline {
                         echo '✅ Análisis SonarCloud completado'
                         
                         // Notificar análisis enviado
-                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"📊 ANÁLISIS SONARCLOUD ENVIADO - ${PROJECT_NAME} - Ver: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"📊 ANÁLISIS SONARCLOUD ENVIADO - ${PROJECT_NAME} - Ver: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                         
                         echo '⚠️  NOTA: Quality Gate se procesa asincrónicamente en SonarCloud'
                     } catch (Exception e) {
-                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"❌ ERROR EN SONAR - ${PROJECT_NAME} - Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"❌ ERROR EN SONAR - ${PROJECT_NAME} - Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                         throw e
                     }
                 }
@@ -108,7 +109,7 @@ pipeline {
                 archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
                 
                 script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"📦 PACKAGE COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"📦 PACKAGE COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                 }
             }
         }
@@ -118,14 +119,14 @@ pipeline {
         success {
             script {
                 echo "🎉 Enviando notificación de ÉXITO a Slack..."
-                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🎉 PIPELINE COMPLETADO EXITOSAMENTE - ${PROJECT_NAME} Build #${BUILD_NUMBER} ✅ Duración: ${currentBuild.durationString} 🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"🎉 PIPELINE COMPLETADO EXITOSAMENTE - ${PROJECT_NAME} Build #${BUILD_NUMBER} ✅ Duración: ${currentBuild.durationString} 🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
             }
         }
         
         failure {
             script {
                 echo "❌ Enviando notificación de ERROR a Slack..."
-                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"❌ PIPELINE FALLÓ - ${PROJECT_NAME} Build #${BUILD_NUMBER} ❌ Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"❌ PIPELINE FALLÓ - ${PROJECT_NAME} Build #${BUILD_NUMBER} ❌ Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
             }
         }
         
