@@ -14,7 +14,7 @@ pipeline {
     environment {
         SONAR_TOKEN = '455e4188da094abfc2ebd67a978455f99f2db738'
         SONAR_PROJECT_KEY = 'Omarrivv_pruebascanales_revision_intermedia'
-        SLACK_WEBHOOK = 'https://hooks.slack.com/services/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'
+        SLACK_WEBHOOK = 'https://hooks.slack.com/services/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'
         PROJECT_NAME = 'MS Students Microservice'
     }
     
