@@ -134,12 +134,20 @@ pipeline {
                 echo '🔍 Analizando código con SonarCloud...'
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        mvn package sonar:sonar \
+                        mvn clean compile test jacoco:report sonar:sonar \
                             -Dsonar.projectKey=Omarrivv_pruebascanales_revision_intermedia \
                             -Dsonar.organization=omarrivv \
                             -Dsonar.host.url=https://sonarcloud.io \
                             -Dsonar.token=$SONAR_TOKEN \
-                            -DskipTests=true
+                            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+                            -Dsonar.java.coveragePlugin=jacoco \
+                            -Dsonar.exclusions="**/target/**,**/node_modules/**,**/*.min.js" \
+                            -Dsonar.coverage.exclusions="**/*Test*.java,**/*test*/**,**/src/test/**" \
+                            -Dsonar.cpd.exclusions="**/*Test*.java,**/*test*/**" \
+                            -Dsonar.sources=src/main/java \
+                            -Dsonar.tests=src/test/java \
+                            -Dsonar.java.binaries=target/classes \
+                            -Dsonar.java.test.binaries=target/test-classes
                     '''
                 }
             }
