@@ -8,70 +8,93 @@ pipeline {
     
     options {
         timeout(time: 8, unit: 'MINUTES')
-        retry(1)
+        skipDefaultCheckout(false)
     }
     
     environment {
-        SONAR_TOKEN = '9f0d4355a17c04aa11cc931798438b04e2cd8bae'
+        SONAR_TOKEN = '455e4188da094abfc2ebd67a978455f99f2db738'
         SONAR_PROJECT_KEY = 'Omarrivv_pruebascanales_revision_intermedia'
-        SLACK_WEBHOOK = 'https://hooks.slack.com/services/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'
+        SLACK_WEBHOOK = 'https://hooks.slack.com/services/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'
         PROJECT_NAME = 'MS Students Microservice'
     }
     
     stages {
-        stage('🚀 Inicio') {
+        stage('🚀 Checkout') {
             steps {
-                echo "🚀 Iniciando Pipeline Completo pero Rápido"
+                echo "🚀 Iniciando Pipeline - ${PROJECT_NAME}"
+                
+                // Descargar código fuente
+                checkout scm
                 
                 script {
-                    bat """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🚀 *PIPELINE INICIADO* - ${PROJECT_NAME}\\\\n📦 Build #${BUILD_NUMBER}\\\\n⏰ Tiempo máximo: 8 minutos\\"}" ${SLACK_WEBHOOK}"""
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🚀 PIPELINE INICIADO - ${PROJECT_NAME} Build #${BUILD_NUMBER} - Código descargado ✅\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                 }
             }
         }
         
-        stage('🔨 Build Rápido') {
+        stage('🔨 Build') {
             steps {
                 echo "🔨 Compilando proyecto..."
+                
+                // Verificar que tenemos el pom.xml
+                sh 'ls -la'
+                sh 'pwd'
+                
                 timeout(time: 2, unit: 'MINUTES') {
-                    bat 'mvn clean compile -T 4 -q'
-                }
-            }
-        }
-        
-        stage('🧪 Tests Selectivos') {
-            steps {
-                echo "🧪 Ejecutando tests más rápidos..."
-                timeout(time: 2, unit: 'MINUTES') {
-                    bat 'mvn test -Dtest=*MapperTest,*ServiceImplTest -q'
+                    sh 'mvn clean compile -q'
                 }
                 
                 script {
-                    bat """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"✅ *TESTS COMPLETADOS* - Build #${BUILD_NUMBER}\\\\n🧪 Tests principales ejecutados exitosamente\\"}" ${SLACK_WEBHOOK}"""
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"✅ BUILD COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                 }
             }
         }
         
-        stage('📊 SonarQube Optimizado') {
+        stage('🧪 Tests') {
             steps {
-                echo "📊 Análisis SonarQube optimizado..."
-                timeout(time: 3, unit: 'MINUTES') {
-                    bat """mvn sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.token=${SONAR_TOKEN} -Dsonar.sourceEncoding=UTF-8 -q"""
-                }
-                
-                script {
-                    bat """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"📊 *SONARQUBE COMPLETADO* - Build #${BUILD_NUMBER}\\\\n✅ Análisis de calidad finalizado\\\\n🔗 https://sonarcloud.io/dashboard?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK}"""
-                }
-            }
-        }
-        
-        stage('📦 Package Final') {
-            steps {
-                echo "📦 Empaquetando aplicación..."
+                echo "🧪 Ejecutando tests..."
                 timeout(time: 1, unit: 'MINUTES') {
-                    bat 'mvn package -DskipTests -q'
+                    sh 'mvn test -q'
+                }
+                
+                script {
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🧪 TESTS COMPLETADOS - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                }
+            }
+        }
+        
+        stage('� SonarCloud Analysis') {
+            steps {
+                script {
+                    try {
+                        echo '🔍 Iniciando análisis de calidad con SonarCloud...'
+                        
+                        sh """mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} -Dsonar.login=${env.SONAR_TOKEN} -q"""
+                        
+                        echo '✅ Análisis SonarCloud completado'
+                        
+                        // Notificar análisis completado
+                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🔍 SONAR ENVIADO - Esperando Quality Gate...\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                    } catch (Exception e) {
+                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"❌ ERROR EN SONAR - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                        throw e
+                    }
+                }
+            }
+        }
+        
+        stage('� Package') {
+            steps {
+                echo "� Empaquetando..."
+                timeout(time: 1, unit: 'MINUTES') {
+                    sh 'mvn package -DskipTests -q'
                 }
                 
                 archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
+                
+                script {
+                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"📦 PACKAGE COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                }
             }
         }
     }
@@ -79,18 +102,18 @@ pipeline {
     post {
         success {
             script {
-                bat """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🎉 *PIPELINE COMPLETADO EXITOSAMENTE* - ${PROJECT_NAME}\\\\n\\\\n📊 *Resumen Final:*\\\\n⏱️ Duración: ${currentBuild.durationString}\\\\n✅ Compilación: SUCCESS\\\\n✅ Tests: PASSED\\\\n✅ SonarQube: COMPLETED\\\\n✅ JAR: GENERATED\\\\n\\\\n🚀 ¡Todo listo!\\"}" ${SLACK_WEBHOOK}"""
+                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🎉 PIPELINE COMPLETADO EXITOSAMENTE - ${PROJECT_NAME} Build #${BUILD_NUMBER} ✅ Duración: ${currentBuild.durationString} 🔗 SonarCloud: https://sonarcloud.io/dashboard?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
             }
         }
         
         failure {
             script {
-                bat """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"💥 *PIPELINE FALLÓ* - ${PROJECT_NAME}\\\\n❌ Build #${BUILD_NUMBER}\\\\n⏱️ Falló después de: ${currentBuild.durationString}\\\\n🔗 Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK}"""
+                sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"� PIPELINE FALLÓ - ${PROJECT_NAME} Build #${BUILD_NUMBER} ❌ Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
             }
         }
         
         always {
-            echo "🧹 Limpieza completada - Pipeline terminado en ${currentBuild.durationString}"
+            echo "🧹 Pipeline terminado"
         }
     }
 }
