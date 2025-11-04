@@ -23,8 +23,12 @@ pipeline {
             steps {
                 echo "🚀 Iniciando Pipeline - ${PROJECT_NAME}"
                 
-                // Descargar código fuente
-                checkout scm
+                // Limpiar workspace y clonar repositorio
+                sh 'rm -rf *'
+                sh 'git clone https://github.com/Omarrivv/pruebascanales_revision_intermedia.git .'
+                
+                // Verificar que tenemos los archivos
+                sh 'ls -la'
                 
                 script {
                     sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"🚀 PIPELINE INICIADO - ${PROJECT_NAME} Build #${BUILD_NUMBER} - Código descargado ✅\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
@@ -35,10 +39,6 @@ pipeline {
         stage('🔨 Build') {
             steps {
                 echo "🔨 Compilando proyecto..."
-                
-                // Verificar que tenemos el pom.xml
-                sh 'ls -la'
-                sh 'pwd'
                 
                 timeout(time: 2, unit: 'MINUTES') {
                     sh 'mvn clean compile -q'
