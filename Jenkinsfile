@@ -86,20 +86,12 @@ pipeline {
                         
                         echo '✅ Análisis SonarCloud completado'
                         
-                        // Notificar análisis enviado con enlace directo
-                        sh """
-                            curl -X POST -H "Content-type: application/json" \
-                            --data '{"text":"� ANÁLISIS SONARCLOUD ENVIADO\\n🔍 Proyecto: ${PROJECT_NAME}\\n🔗 Ver resultados: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\n⏳ Procesando Quality Gate..."}' \
-                            ${SLACK_WEBHOOK}
-                        """
+                        // Notificar análisis enviado
+                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"📊 ANÁLISIS SONARCLOUD ENVIADO - ${PROJECT_NAME} - Ver: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                         
                         echo '⚠️  NOTA: Quality Gate se procesa asincrónicamente en SonarCloud'
                     } catch (Exception e) {
-                        sh """
-                            curl -X POST -H "Content-type: application/json" \
-                            --data '{"text":"❌ ERROR EN ANÁLISIS SONARCLOUD\\n📋 Proyecto: ${PROJECT_NAME}\\n🚨 Revisar token y configuración\\n📊 Console: ${BUILD_URL}console"}' \
-                            ${SLACK_WEBHOOK}
-                        """
+                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"text\\":\\"❌ ERROR EN SONAR - ${PROJECT_NAME} - Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
                         throw e
                     }
                 }
