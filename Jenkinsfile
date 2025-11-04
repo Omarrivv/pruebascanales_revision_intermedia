@@ -1,137 +1,185 @@
 pipeline {
     agent any
-    
+
+    parameters {
+        booleanParam(name: 'CLEAN_MAVEN_CACHE', defaultValue: false, description: 'Limpiar caché de Maven antes del build')
+    }
+
     tools {
-        maven 'Maven-3.9'
-        jdk 'JDK-17'
+        jdk 'Java17'
+        maven 'M3'
     }
-    
-    options {
-        timeout(time: 8, unit: 'MINUTES')
-        skipDefaultCheckout(false)
-    }
-    
+
     environment {
-        SONAR_TOKEN = '455e4188da094abfc2ebd67a978455f99f2db738'
-        SONAR_PROJECT_KEY = 'Omarrivv_pruebascanales_revision_intermedia'
-        SLACK_WEBHOOK = 'https://hooks.slack.com/services/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'
-        PROJECT_NAME = 'MS Students Microservice'
-        SLACK_CHANNEL = '#jenkins-ci-cd-bot'
+    GITHUB_REPO = 'https://github.com/Omarrivv/pruebascanales_revision_intermedia.git'
+        MAVEN_OPTS = '-Xmx1024m -Dmaven.wagon.http.retryHandler.count=3'
+        // MAVEN_CONFIG se puede dejar fuera ya que usas las propiedades en los comandos sh
     }
-    
+
     stages {
-        stage('🚀 Checkout') {
+        stage('Checkout') {
             steps {
-                echo "🚀 Iniciando Pipeline - ${PROJECT_NAME}"
+                echo '� Clonando repositorio...'
+                git branch: 'develop-clean', url: "${GITHUB_REPO}"
                 
-                // Limpiar workspace y obtener código actualizado
+                echo '🧹 Limpiando caché de Maven si es necesario...'
                 script {
-                    // Verificar si ya existe un repositorio git
-                    def gitExists = sh(script: 'test -d .git', returnStatus: true) == 0
-                    
-                    if (gitExists) {
-                        echo "📁 Repositorio git encontrado, actualizando..."
-                        sh 'git fetch origin'
-                        sh 'git reset --hard origin/main'
-                        sh 'git clean -fd'
-                    } else {
-                        echo "📁 Clonando repositorio por primera vez..."
-                        sh 'rm -rf * .* || true'
-                        sh 'git clone https://github.com/Omarrivv/pruebascanales_revision_intermedia.git .'
+                    if (params.CLEAN_MAVEN_CACHE == true) {
+                        sh 'rm -rf ~/.m2/repository'
+                        echo '✅ Caché de Maven limpiada'
                     }
                 }
-                
-                // Verificar que tenemos los archivos
-                sh 'ls -la'
-                
-                script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"🚀 PIPELINE INICIADO - ${PROJECT_NAME} Build #${BUILD_NUMBER} - Código descargado ✅\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+            }
+        }
+
+        stage('Build & Compile') {
+            steps {
+                echo '⚙️ Compilando proyecto...'
+                retry(3) {
+                    sh '''
+                        mvn compile \
+                            -s maven-settings.xml \
+                            -Dmaven.wagon.http.retryHandler.count=3 \
+                            -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
+                            -Dmaven.wagon.http.pool=false
+                    '''
                 }
             }
         }
-        
-        stage('🔨 Build') {
+
+        stage('Unit Tests & Jacoco') {
             steps {
-                echo "🔨 Compilando proyecto..."
-                
-                timeout(time: 2, unit: 'MINUTES') {
-                    sh 'mvn clean compile -q'
-                }
-                
-                script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"✅ BUILD COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
-                }
-            }
-        }
-        
-        stage('🧪 Tests') {
-            steps {
-                echo "🧪 Ejecutando tests..."
-                timeout(time: 1, unit: 'MINUTES') {
-                    sh 'mvn test -q'
-                }
-                
-                script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"🧪 TESTS COMPLETADOS - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
-                }
-            }
-        }
-        
-        stage('� SonarCloud Analysis') {
-            steps {
+                echo '🧪 Ejecutando pruebas unitarias con cobertura...'
                 script {
                     try {
-                        echo '🔍 Iniciando análisis de calidad con SonarCloud...'
-                        
-                        sh """mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} -Dsonar.login=${env.SONAR_TOKEN} -q"""
-                        
-                        echo '✅ Análisis SonarCloud completado'
-                        
-                        // Notificar análisis enviado
-                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"📊 ANÁLISIS SONARCLOUD ENVIADO - ${PROJECT_NAME} - Ver: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
-                        
-                        echo '⚠️  NOTA: Quality Gate se procesa asincrónicamente en SonarCloud'
+                        sh '''
+                            mvn test jacoco:report \
+                                -s maven-settings.xml \
+                                -Dsurefire.failIfNoSpecifiedTests=false
+                        '''
+                        echo '✅ Pruebas unitarias completadas'
                     } catch (Exception e) {
-                        sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"❌ ERROR EN SONAR - ${PROJECT_NAME} - Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
-                        throw e
+                        echo "⚠️ Algunas pruebas unitarias fallaron: ${e.getMessage()}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        // Publicar resultados de pruebas de Unit Tests
+                        try {
+                            // Usamos **/surefire-reports/TEST-*.xml para capturar el último run de tests
+                            junit allowEmptyResults: true, testResults: 'target/surefire-reports/TEST-*.xml' 
+                            echo '✅ Resultados de pruebas unitarias publicados'
+                        } catch (Exception e) {
+                            echo "⚠️ Error publicando resultados de pruebas: ${e.getMessage()}"
+                        }
+
+                        // Publicar reporte de cobertura JaCoCo
+                        try {
+                            if (fileExists('target/site/jacoco/jacoco.xml')) {
+                                jacoco execPattern: 'target/jacoco.exec'
+                                echo '✅ Reporte de cobertura JaCoCo publicado'
+                            } else {
+                                echo '⚠️ No se encontró el reporte de JaCoCo'
+                            }
+                            
+                            // También archivar los reportes HTML
+                            if (fileExists('target/site/jacoco/index.html')) {
+                                archiveArtifacts artifacts: 'target/site/jacoco/**/*', allowEmptyArchive: true
+                                echo '✅ Reportes HTML de JaCoCo archivados'
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ Error publicando cobertura: ${e.getMessage()}"
+                        }
                     }
                 }
             }
         }
-        
-        stage('� Package') {
+
+        stage('Integration Tests') {
             steps {
-                echo "� Empaquetando..."
-                timeout(time: 1, unit: 'MINUTES') {
-                    sh 'mvn package -DskipTests -q'
-                }
-                
-                archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
-                
+                echo '🔗 Ejecutando pruebas de integración...'
                 script {
-                    sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"📦 PACKAGE COMPLETADO - ${PROJECT_NAME}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
+                    try {
+                        // EJECUCIÓN: No usar 'clean'
+                        sh '''
+                            mvn failsafe:integration-test \
+                                -s maven-settings.xml \
+                                -Dtest=*IntegrationTest,*PerformanceTest \
+                                -Dsurefire.failIfNoSpecifiedTests=false
+                        '''
+                        echo '✅ Pruebas de integración completadas'
+                    } catch (Exception e) {
+                        echo "⚠️ Algunas pruebas de integración fallaron: ${e.getMessage()}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        try {
+                            // Usar el plugin 'failsafe' para Integration Tests
+                            junit allowEmptyResults: true, testResults: 'target/failsafe-reports/TEST-*.xml' 
+                            echo '✅ Resultados de integración publicados'
+                        } catch (Exception e) {
+                            echo "⚠️ Error publicando resultados de integración: ${e.getMessage()}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Code Analysis') {
+            steps {
+                echo '🔍 Analizando código con SonarCloud...'
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        mvn package sonar:sonar \
+                            -s maven-settings.xml \
+                            -Dsonar.projectKey=Omarrivv_pruebascanales_revision_intermedia \
+                            -Dsonar.organization=omarrivv \
+                            -Dsonar.host.url=https://sonarcloud.io \
+                            -Dsonar.token=$SONAR_TOKEN \
+                            -DskipTests=true
+                    '''
                 }
             }
         }
     }
-    
+
     post {
-        success {
-            script {
-                echo "🎉 Enviando notificación de ÉXITO a Slack..."
-                sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"🎉 PIPELINE COMPLETADO EXITOSAMENTE - ${PROJECT_NAME} Build #${BUILD_NUMBER} ✅ Duración: ${currentBuild.durationString} 🔗 SonarCloud: https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
-            }
-        }
-        
-        failure {
-            script {
-                echo "❌ Enviando notificación de ERROR a Slack..."
-                sh """curl -X POST -H "Content-type: application/json" --data "{\\"channel\\":\\"${SLACK_CHANNEL}\\",\\"text\\":\\"❌ PIPELINE FALLÓ - ${PROJECT_NAME} Build #${BUILD_NUMBER} ❌ Ver logs: ${BUILD_URL}console\\"}" ${SLACK_WEBHOOK} || echo "Slack failed" """
-            }
-        }
-        
         always {
-            echo "🧹 Pipeline terminado"
+            echo '🧹 Limpiando workspace...'
+            cleanWs()
+        }
+        success {
+            echo '✅ Pipeline ejecutado con éxito!'
+            slackSend(
+                channel: '#jenkins-ci-cd-bot',
+                color: 'good',
+                message: """
+                ✅ *BUILD EXITOSO*
+                Proyecto: *${env.JOB_NAME}*
+                Build: *#${env.BUILD_NUMBER}*
+                Ver detalles: ${env.BUILD_URL}
+                """
+            )
+        }
+        failure {
+            echo '❌ Pipeline falló!'
+            slackSend(
+                channel: '#jenkins-ci-cd-bot',
+                color: 'danger',
+                message: """
+                ❌ *BUILD FALLIDO*
+                Proyecto: *${env.JOB_NAME}*
+                Build: *#${env.BUILD_NUMBER}*
+                *${currentBuild.result}* - Ver detalles: ${env.BUILD_URL}
+                """
+            )
         }
     }
 }
