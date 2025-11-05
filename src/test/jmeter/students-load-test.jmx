@@ -61,16 +61,19 @@
             <stringProp name="Header.name">Accept</stringProp>
             <stringProp name="Header.value">application/json</stringProp>
           </elementProp>
-          <elementProp name="X-User-ID" elementType="Header">
-            <stringProp name="Header.name">X-User-ID</stringProp>
-            <stringProp name="Header.value">test-user</stringProp>
-          </elementProp>
-          <elementProp name="X-User-Role" elementType="Header">
-            <stringProp name="Header.name">X-User-Role</stringProp>
-            <stringProp name="Header.value">ADMIN</stringProp>
+          <elementProp name="User-Agent" elementType="Header">
+            <stringProp name="Header.name">User-Agent</stringProp>
+            <stringProp name="Header.value">JMeter-LoadTest/1.0</stringProp>
           </elementProp>
         </collectionProp>
       </HeaderManager>
+      <hashTree/>
+
+      <!-- SSL Configuration for HTTPS -->
+      <KeystoreConfig guiclass="TestBeanGUI" testclass="KeystoreConfig" testname="SSL Keystore Configuration" enabled="true">
+        <stringProp name="https.default.protocol">TLS</stringProp>
+        <stringProp name="https.default.check.cert">false</stringProp>
+      </KeystoreConfig>
       <hashTree/>
 
       <!-- Thread Group: Carga Normal -->
@@ -114,21 +117,22 @@
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
             </collectionProp>
-            <stringProp name="Assertion.custom_message"></stringProp>
+            <stringProp name="Assertion.custom_message">Expected HTTP 200 response code</stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
             <intProp name="Assertion.test_type">1</intProp>
           </ResponseAssertion>
           <hashTree/>
           
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Path Assertion" enabled="true">
-            <stringProp name="JSON_PATH">$.success</stringProp>
-            <stringProp name="EXPECTED_VALUE">true</stringProp>
-            <boolProp name="JSONVALIDATION">true</boolProp>
-            <boolProp name="EXPECT_NULL">false</boolProp>
-            <boolProp name="INVERT">false</boolProp>
-            <boolProp name="ISREGEX">false</boolProp>
-          </JSONPathAssertion>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Message Assertion" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="1804735389">Students retrieved successfully</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">Expected success message in response</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">16</intProp>
+          </ResponseAssertion>
           <hashTree/>
         </hashTree>
 
