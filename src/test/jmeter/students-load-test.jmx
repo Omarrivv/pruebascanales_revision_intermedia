@@ -114,24 +114,24 @@
         <hashTree>
           <!-- Assertions para Listar Estudiantes -->
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
-            <collectionProp name="Asserion.test_strings">
+            <collectionProp name="Assertion.test_strings">
               <stringProp name="49586">200</stringProp>
             </collectionProp>
             <stringProp name="Assertion.custom_message">Expected HTTP 200 response code</stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">1</intProp>
+            <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
           <hashTree/>
           
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Message Assertion" enabled="true">
-            <collectionProp name="Asserion.test_strings">
+            <collectionProp name="Assertion.test_strings">
               <stringProp name="1804735389">Students retrieved successfully</stringProp>
             </collectionProp>
             <stringProp name="Assertion.custom_message">Expected success message in response</stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">16</intProp>
+            <intProp name="Assertion.test_type">2</intProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
@@ -186,13 +186,13 @@
           
           <!-- Assertions para Crear Estudiante -->
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
-            <collectionProp name="Asserion.test_strings">
+            <collectionProp name="Assertion.test_strings">
               <stringProp name="49587">201</stringProp>
             </collectionProp>
-            <stringProp name="Assertion.custom_message"></stringProp>
+            <stringProp name="Assertion.custom_message">Expected HTTP 201 Created response code</stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">1</intProp>
+            <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
@@ -219,13 +219,13 @@
         <hashTree>
           <!-- Assertions para Obtener por ID -->
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
-            <collectionProp name="Asserion.test_strings">
+            <collectionProp name="Assertion.test_strings">
               <stringProp name="49586">200</stringProp>
             </collectionProp>
-            <stringProp name="Assertion.custom_message"></stringProp>
+            <stringProp name="Assertion.custom_message">Expected HTTP 200 response code</stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">1</intProp>
+            <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
@@ -275,15 +275,15 @@
         <hashTree>
           <!-- Assertions menos estrictas para estrés -->
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
-            <collectionProp name="Asserion.test_strings">
+            <collectionProp name="Assertion.test_strings">
               <stringProp name="49586">200</stringProp>
               <stringProp name="1572902">500</stringProp>
               <stringProp name="1542401">503</stringProp>
             </collectionProp>
-            <stringProp name="Assertion.custom_message"></stringProp>
+            <stringProp name="Assertion.custom_message">Expected 200, 500 or 503 response codes during stress test</stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">1</intProp>
+            <intProp name="Assertion.test_type">2</intProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
